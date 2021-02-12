@@ -5,7 +5,7 @@ use tui::{
     widgets::{Block, BorderType, Borders, Cell, List, ListItem, Paragraph, Row, Table, Tabs},
 };
 
-use crate::database::Domain;
+use crate::database::{Domain, DomainInteraction};
 
 pub struct Gui;
 
@@ -141,16 +141,17 @@ impl<'a> Gui {
         ])
     }
 
-    pub fn render_domain_interactions_widget(iframed: i32) -> Table<'a> {
+    pub fn render_domain_interaction_widget(interaction: DomainInteraction) -> Table<'a> {
         let header_style = Style::default().add_modifier(Modifier::BOLD);
 
-        Table::new(vec![Row::new(vec![Cell::from(Span::raw(
-            iframed.to_string(),
-        ))])])
-        .header(Row::new(vec![Cell::from(Span::styled(
-            "IFRAMED IN TOP FRAMES",
-            header_style,
-        ))]))
+        Table::new(vec![Row::new(vec![
+            Cell::from(Span::raw(interaction.iframes.to_string())),
+            Cell::from(Span::raw(interaction.requests.to_string())),
+        ])])
+        .header(Row::new(vec![
+            Cell::from(Span::styled("IFRAMED IN TOP FRAMES", header_style)),
+            Cell::from(Span::styled("REQUESTED FROM TOP FRAMES", header_style)),
+        ]))
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -158,7 +159,7 @@ impl<'a> Gui {
                 .title("Interactions")
                 .border_type(BorderType::Plain),
         )
-        .widths(&[Constraint::Percentage(100)])
+        .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)])
     }
 
     fn render_menu_style(first: &'a str, rest: &'a str) -> Vec<Span<'a>> {

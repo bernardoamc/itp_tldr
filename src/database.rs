@@ -1,14 +1,17 @@
 use rusqlite::{params, Connection, Result as SQLiteResult, Row, NO_PARAMS};
 extern crate dirs;
 
-const DATABASE_PATH: &'static str = 
-    "Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics/observations.db";
+const DATABASE_PATH: &'static str = "Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics/observations.db";
 
 const OBSERVED_DOMAINS: &'static str = "SELECT domainID, registrableDomain FROM ObservedDomains";
-const SCOPED_DOMAINS: &'static str = "SELECT domainID, registrableDomain FROM ObservedDomains WHERE registrableDomain = ?";
+const SCOPED_DOMAINS: &'static str =
+    "SELECT domainID, registrableDomain FROM ObservedDomains WHERE registrableDomain = ?";
 const DOMAINS_AMOUNT: &'static str = "SELECT count(*) FROM ObservedDomains";
 const DOMAIN_INFO: &'static str = "SELECT isPrevalent, isVeryPrevalent, timesAccessedAsFirstPartyDueToUserInteraction, timesAccessedAsFirstPartyDueToStorageAccessAPI FROM ObservedDomains WHERE domainID = ?";
-const IFRAME_DOMAIN_INFO: &'static str = "SELECT count(*) FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ?";
+const IFRAME_DOMAIN_INFO: &'static str =
+    "SELECT count(*) FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ?";
+const SUBRESOURCE_DOMAIN_INFO: &'static str =
+    "SELECT count(*) FROM SubresourceUnderTopFrameDomains WHERE subresourceDomainID = ?";
 
 #[derive(Default, Debug)]
 pub struct Domain {
@@ -26,14 +29,20 @@ impl Domain {
             true => "Yes",
             false => "No",
         }
-    } 
+    }
 
     pub fn is_very_prevalent(&self) -> &str {
         match self.very_prevalent {
             true => "Yes",
             false => "No",
         }
-    } 
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct DomainInteraction {
+    pub iframes: i32,
+    pub requests: i32,
 }
 
 pub struct Database {
@@ -90,19 +99,20 @@ impl Database {
     }
 
     pub fn get_info(&self, domain: &Domain) -> SQLiteResult<Domain> {
-        let info = self.connection
-        .query_row(&DOMAIN_INFO, params![domain.id], |row| 
-            Ok(Domain {
-                id: domain.id,
-                name: domain.name.clone(),
-                prevalent: row.get(0)?,
-                very_prevalent: row.get(1)?,
-                first_party_interaction: row.get(2)?,
-                first_party_store_access: row.get(3)?,
+        let info = self
+            .connection
+            .query_row(&DOMAIN_INFO, params![domain.id], |row| {
+                Ok(Domain {
+                    id: domain.id,
+                    name: domain.name.clone(),
+                    prevalent: row.get(0)?,
+                    very_prevalent: row.get(1)?,
+                    first_party_interaction: row.get(2)?,
+                    first_party_store_access: row.get(3)?,
+                })
             })
-        )
-        .expect("Failed to query row");
-    
+            .expect("Failed to query row");
+
         Ok(info)
     }
 
@@ -116,11 +126,29 @@ impl Database {
         }
     }
 
-    pub fn iframed_count(&self, domain: &Domain) -> i32 {
+    pub fn domain_interaction(&self, domain: &Domain) -> DomainInteraction {
+        let iframe_count = self.iframed_count(domain);
+        let requests_count = self.requests_count(domain);
+
+        DomainInteraction {
+            iframes: iframe_count,
+            requests: requests_count,
+        }
+    }
+
+    fn iframed_count(&self, domain: &Domain) -> i32 {
         self.connection
-            .query_row(&IFRAME_DOMAIN_INFO, params![domain.id], |row| 
+            .query_row(&IFRAME_DOMAIN_INFO, params![domain.id], |row| {
                 Ok(row.get(0).unwrap_or(0))
-            )
+            })
+            .unwrap_or(0)
+    }
+
+    fn requests_count(&self, domain: &Domain) -> i32 {
+        self.connection
+            .query_row(&SUBRESOURCE_DOMAIN_INFO, params![domain.id], |row| {
+                Ok(row.get(0).unwrap_or(0))
+            })
             .unwrap_or(0)
     }
 }
