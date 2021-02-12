@@ -2,12 +2,10 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{
-        Block, BorderType, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table, Tabs,
-    },
+    widgets::{Block, BorderType, Borders, Cell, List, ListItem, Paragraph, Row, Table, Tabs},
 };
 
-use crate::database::Database;
+use crate::database::Domain;
 
 pub struct Gui;
 
@@ -85,18 +83,14 @@ impl<'a> Gui {
         home
     }
 
-    pub fn render_domains(
-        database: &Database,
-        domain_list_state: &ListState,
-    ) -> (List<'a>, Table<'a>) {
-        let domains_pane = Block::default()
+    pub fn render_domain_list_widget(domains: &Vec<Domain>) -> List<'a> {
+        let list_block = Block::default()
             .borders(Borders::ALL)
             .style(Style::default().fg(Color::White))
             .title("Domains")
             .border_type(BorderType::Plain);
 
-        let domain_list = database.get_domains().expect("fetch domain list");
-        let items: Vec<_> = domain_list
+        let list_items: Vec<_> = domains
             .iter()
             .map(|domain| {
                 ListItem::new(Spans::from(vec![Span::styled(
@@ -106,28 +100,23 @@ impl<'a> Gui {
             })
             .collect();
 
-        let domains_list_ui = List::new(items).block(domains_pane).highlight_style(
+        List::new(list_items).block(list_block).highlight_style(
             Style::default()
                 .bg(Color::Yellow)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD),
-        );
+        )
+    }
 
-        let selected_domain = domain_list
-            .get(domain_list_state.selected().expect("domain to be selected"))
-            .expect("domain exists");
-
-        let domain_info = database
-            .get_info(&selected_domain)
-            .expect("get information from domain");
-
+    pub fn render_domain_info_widget(domain: &Domain) -> Table<'a> {
         let header_style = Style::default().add_modifier(Modifier::BOLD);
-        let domain_info_pane = Table::new(vec![Row::new(vec![
-            Cell::from(Span::raw(domain_info.id.to_string())),
-            Cell::from(Span::raw(domain_info.render_is_prevalent().to_owned())),
-            Cell::from(Span::raw(domain_info.render_is_very_prevalent().to_owned())),
-            Cell::from(Span::raw(domain_info.first_party_interaction.to_string())),
-            Cell::from(Span::raw(domain_info.first_party_store_access.to_string())),
+
+        Table::new(vec![Row::new(vec![
+            Cell::from(Span::raw(domain.id.to_string())),
+            Cell::from(Span::raw(domain.is_prevalent().to_owned())),
+            Cell::from(Span::raw(domain.is_very_prevalent().to_owned())),
+            Cell::from(Span::raw(domain.first_party_interaction.to_string())),
+            Cell::from(Span::raw(domain.first_party_store_access.to_string())),
         ])])
         .header(Row::new(vec![
             Cell::from(Span::styled("ID", header_style)),
@@ -149,9 +138,7 @@ impl<'a> Gui {
             Constraint::Percentage(20),
             Constraint::Percentage(30),
             Constraint::Percentage(30),
-        ]);
-
-        (domains_list_ui, domain_info_pane)
+        ])
     }
 
     fn render_menu_style(first: &'a str, rest: &'a str) -> Vec<Span<'a>> {

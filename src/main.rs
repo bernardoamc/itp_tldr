@@ -96,41 +96,60 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         terminal.draw(|screen| {
-            let panes = Gui::render_panes(screen.size());
-            let tabs = Gui::render_tabs(&menu_titles, active_menu_item.into());
-            let copyright = Gui::render_copyright();
+            let main_panes = Gui::render_panes(screen.size());
+            let tabs_widget = Gui::render_tabs(&menu_titles, active_menu_item.into());
+            let copyright_widget = Gui::render_copyright();
 
-            screen.render_widget(tabs, panes[0]);
+            screen.render_widget(tabs_widget, main_panes[0]);
 
             match active_menu_item {
-                MenuItem::Home => screen.render_widget(Gui::render_home_pane(), panes[1]),
+                MenuItem::Home => screen.render_widget(Gui::render_home_pane(), main_panes[1]),
                 MenuItem::Domains => {
-                    let domain_ui = Layout::default()
+                    let domain_list = db.get_domains().expect("fetch domain list");
+                    let selected_domain = domain_list
+                        .get(domain_list_state.selected().expect("domain to be selected"))
+                        .expect("domain exists");
+
+                    let selected_domain_info = db
+                        .get_info(&selected_domain)
+                        .expect("get information from domain");
+
+                    let domain_ui_panes = Layout::default()
                         .direction(Direction::Horizontal)
                         .constraints(
                             [Constraint::Percentage(20), Constraint::Percentage(80)].as_ref(),
                         )
-                        .split(panes[1]);
+                        .split(main_panes[1]);
 
-                    let (domain_list, domain_details) =
-                        Gui::render_domains(&db, &domain_list_state);
+                    let domain_details_panes = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(
+                            [Constraint::Percentage(15), Constraint::Percentage(85)].as_ref(),
+                        )
+                        .split(domain_ui_panes[1]);
+
+                    let domain_list_widget = Gui::render_domain_list_widget(&domain_list);
+                    let domain_details_table_widget =
+                        Gui::render_domain_info_widget(&selected_domain_info);
 
                     screen.render_stateful_widget(
-                        domain_list,
-                        domain_ui[0],
+                        domain_list_widget,
+                        domain_ui_panes[0],
                         &mut domain_list_state,
                     );
-                    screen.render_widget(domain_details, domain_ui[1]);
+                    screen.render_widget(domain_details_table_widget, domain_details_panes[0]);
+                    // TODO: Render another UI using domain_details_panes[1]
+                    // We will need something similar to Gui::render_domains
                 }
             }
 
-            screen.render_widget(copyright, panes[2]);
+            screen.render_widget(copyright_widget, main_panes[2]);
         })?;
 
         match rx.recv()? {
             Event::Input(event) => match event.code {
-                KeyCode::Char('h') => active_menu_item = MenuItem::Home,
-                KeyCode::Char('d') => active_menu_item = MenuItem::Domains,
+                KeyCode::Char('h') | KeyCode::Char('H') => active_menu_item = MenuItem::Home,
+                KeyCode::Char('d') | KeyCode::Char('D') => active_menu_item = MenuItem::Domains,
                 KeyCode::Down => {
                     if let Some(selected) = domain_list_state.selected() {
                         let amount_domains = db.domains_len().expect("failed to count domains");
@@ -144,7 +163,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         domain_list_state.select(Some(index as usize));
                     }
                 }
-                KeyCode::Char('q') => {
+                KeyCode::Char('q') | KeyCode::Char('Q') => {
                     disable_raw_mode()?;
                     terminal.show_cursor()?;
                     terminal.clear()?;

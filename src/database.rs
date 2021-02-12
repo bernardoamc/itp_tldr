@@ -19,14 +19,14 @@ pub struct Domain {
 }
 
 impl Domain {
-    pub fn render_is_prevalent(&self) -> &str {
+    pub fn is_prevalent(&self) -> &str {
         match self.prevalent {
             true => "Yes",
             false => "No",
         }
     } 
 
-    pub fn render_is_very_prevalent(&self) -> &str {
+    pub fn is_very_prevalent(&self) -> &str {
         match self.very_prevalent {
             true => "Yes",
             false => "No",
