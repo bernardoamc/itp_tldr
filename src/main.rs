@@ -114,6 +114,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .get_info(&selected_domain)
                         .expect("get information from domain");
 
+                    let iframed_count = db.iframed_count(&selected_domain);
+
                     let domain_ui_panes = Layout::default()
                         .direction(Direction::Horizontal)
                         .constraints(
@@ -131,6 +133,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let domain_list_widget = Gui::render_domain_list_widget(&domain_list);
                     let domain_details_table_widget =
                         Gui::render_domain_info_widget(&selected_domain_info);
+                    let domain_interaction_widget =
+                        Gui::render_domain_interactions_widget(iframed_count);
 
                     screen.render_stateful_widget(
                         domain_list_widget,
@@ -138,8 +142,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &mut domain_list_state,
                     );
                     screen.render_widget(domain_details_table_widget, domain_details_panes[0]);
-                    // TODO: Render another UI using domain_details_panes[1]
-                    // We will need something similar to Gui::render_domains
+                    screen.render_widget(domain_interaction_widget, domain_details_panes[1]);
                 }
             }
 

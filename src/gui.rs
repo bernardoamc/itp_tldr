@@ -129,7 +129,7 @@ impl<'a> Gui {
             Block::default()
                 .borders(Borders::ALL)
                 .style(Style::default().fg(Color::White))
-                .title("Detail")
+                .title("Details")
                 .border_type(BorderType::Plain),
         )
         .widths(&[
@@ -139,6 +139,26 @@ impl<'a> Gui {
             Constraint::Percentage(30),
             Constraint::Percentage(30),
         ])
+    }
+
+    pub fn render_domain_interactions_widget(iframed: i32) -> Table<'a> {
+        let header_style = Style::default().add_modifier(Modifier::BOLD);
+
+        Table::new(vec![Row::new(vec![Cell::from(Span::raw(
+            iframed.to_string(),
+        ))])])
+        .header(Row::new(vec![Cell::from(Span::styled(
+            "IFRAMED IN TOP FRAMES",
+            header_style,
+        ))]))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().fg(Color::White))
+                .title("Interactions")
+                .border_type(BorderType::Plain),
+        )
+        .widths(&[Constraint::Percentage(100)])
     }
 
     fn render_menu_style(first: &'a str, rest: &'a str) -> Vec<Span<'a>> {

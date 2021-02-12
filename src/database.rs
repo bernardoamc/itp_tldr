@@ -8,6 +8,8 @@ const OBSERVED_DOMAINS: &'static str = "SELECT domainID, registrableDomain FROM 
 const SCOPED_DOMAINS: &'static str = "SELECT domainID, registrableDomain FROM ObservedDomains WHERE registrableDomain = ?";
 const DOMAINS_AMOUNT: &'static str = "SELECT count(*) FROM ObservedDomains";
 const DOMAIN_INFO: &'static str = "SELECT isPrevalent, isVeryPrevalent, timesAccessedAsFirstPartyDueToUserInteraction, timesAccessedAsFirstPartyDueToStorageAccessAPI FROM ObservedDomains WHERE domainID = ?";
+const IFRAME_DOMAIN_INFO: &'static str = "SELECT count(*) FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ?";
+
 #[derive(Default, Debug)]
 pub struct Domain {
     pub id: i64,
@@ -112,5 +114,13 @@ impl Database {
                 .query_row(&DOMAINS_AMOUNT, NO_PARAMS, |r| Ok(r.get(0)))
                 .expect("select failed"),
         }
+    }
+
+    pub fn iframed_count(&self, domain: &Domain) -> i32 {
+        self.connection
+            .query_row(&IFRAME_DOMAIN_INFO, params![domain.id], |row| 
+                Ok(row.get(0).unwrap_or(0))
+            )
+            .unwrap_or(0)
     }
 }
