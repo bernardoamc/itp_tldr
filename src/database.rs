@@ -12,6 +12,8 @@ const IFRAME_DOMAIN_INFO: &'static str =
     "SELECT count(*) FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ?";
 const SUBRESOURCE_DOMAIN_INFO: &'static str =
     "SELECT count(*) FROM SubresourceUnderTopFrameDomains WHERE subresourceDomainID = ?";
+const TOPFRAME_DOMAIN_REDIRECT: &'static str =
+    "SELECT count(*) FROM TopFrameUniqueRedirectsTo WHERE toDomainID = ?";
 
 #[derive(Default, Debug)]
 pub struct Domain {
@@ -43,6 +45,7 @@ impl Domain {
 pub struct DomainInteraction {
     pub iframes: i32,
     pub requests: i32,
+    pub redirects: i32,
 }
 
 pub struct Database {
@@ -129,10 +132,12 @@ impl Database {
     pub fn domain_interaction(&self, domain: &Domain) -> DomainInteraction {
         let iframe_count = self.iframed_count(domain);
         let requests_count = self.requests_count(domain);
+        let redirects_count = self.redirects_count(domain);
 
         DomainInteraction {
             iframes: iframe_count,
             requests: requests_count,
+            redirects: redirects_count,
         }
     }
 
@@ -147,6 +152,14 @@ impl Database {
     fn requests_count(&self, domain: &Domain) -> i32 {
         self.connection
             .query_row(&SUBRESOURCE_DOMAIN_INFO, params![domain.id], |row| {
+                Ok(row.get(0).unwrap_or(0))
+            })
+            .unwrap_or(0)
+    }
+
+    fn redirects_count(&self, domain: &Domain) -> i32 {
+        self.connection
+            .query_row(&TOPFRAME_DOMAIN_REDIRECT, params![domain.id], |row| {
                 Ok(row.get(0).unwrap_or(0))
             })
             .unwrap_or(0)

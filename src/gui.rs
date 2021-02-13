@@ -147,10 +147,15 @@ impl<'a> Gui {
         Table::new(vec![Row::new(vec![
             Cell::from(Span::raw(interaction.iframes.to_string())),
             Cell::from(Span::raw(interaction.requests.to_string())),
+            Cell::from(Span::raw(interaction.redirects.to_string())),
         ])])
         .header(Row::new(vec![
-            Cell::from(Span::styled("IFRAMED IN TOP FRAMES", header_style)),
-            Cell::from(Span::styled("REQUESTED FROM TOP FRAMES", header_style)),
+            Cell::from(Span::styled("IFRAMED", header_style)),
+            Cell::from(Span::styled("CROSS ORIGIN REQUESTS TO", header_style)),
+            Cell::from(Span::styled(
+                "REDIRECTS WITHOUT USER INTERACTION",
+                header_style,
+            )),
         ]))
         .block(
             Block::default()
@@ -159,7 +164,11 @@ impl<'a> Gui {
                 .title("Interactions")
                 .border_type(BorderType::Plain),
         )
-        .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)])
+        .widths(&[
+            Constraint::Percentage(20),
+            Constraint::Percentage(30),
+            Constraint::Percentage(50),
+        ])
     }
 
     fn render_menu_style(first: &'a str, rest: &'a str) -> Vec<Span<'a>> {
