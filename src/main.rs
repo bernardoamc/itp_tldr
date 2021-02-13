@@ -45,7 +45,7 @@ impl From<MenuItem> for usize {
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "itp_tldr", setting = structopt::clap::AppSettings::TrailingVarArg)]
-/// ITP TL;DR; the tool you didn't know you need to understand ITP.
+/// ITP TL;DR; the tool you didn't know you needed to understand ITP.
 pub struct Opts {
     /// A list of comma separated domains.
     #[structopt(short, long, use_delimiter = true)]
