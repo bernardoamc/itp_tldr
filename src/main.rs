@@ -9,18 +9,16 @@ use std::thread;
 use std::time::{Duration, Instant};
 use std::{cmp, path::PathBuf};
 use structopt::StructOpt;
-use tui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    widgets::ListState,
-    Terminal,
-};
+use tui::{backend::CrosstermBackend, widgets::ListState, Terminal};
 
 mod database;
 use database::Database;
 
 mod gui;
 use gui::Gui;
+
+mod domain_renderer;
+use domain_renderer::DomainRenderer;
 
 const DATABASE_PATH: &'static str = "Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics/observations.db";
 
@@ -96,6 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+
     terminal.clear()?;
 
     let menu_titles = vec!["Home", "Domains"];
@@ -114,44 +113,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             match active_menu_item {
                 MenuItem::Home => screen.render_widget(Gui::render_home_pane(), main_panes[1]),
                 MenuItem::Domains => {
-                    let domain_list = db.get_domains().expect("fetch domain list");
-                    let selected_domain = domain_list
-                        .get(domain_list_state.selected().expect("domain to be selected"))
-                        .expect("domain exists");
+                    let domain_list = db.get_domains().unwrap_or(Vec::new());
+                    let domain_renderer = match domain_list.is_empty() {
+                        true => DomainRenderer::new(&domain_list, None),
+                        false => {
+                            let selected_domain = domain_list
+                                .get(domain_list_state.selected().expect("domain to be selected"))
+                                .expect("domain to exist in list");
 
-                    let selected_domain_info = db
-                        .get_info(&selected_domain)
-                        .expect("get information from domain");
+                            DomainRenderer::new(&domain_list, Some(selected_domain))
+                        }
+                    };
 
-                    let domain_interaction = db.domain_interaction(&selected_domain);
-
-                    let domain_ui_panes = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints(
-                            [Constraint::Percentage(20), Constraint::Percentage(80)].as_ref(),
-                        )
-                        .split(main_panes[1]);
-
-                    let domain_details_panes = Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints(
-                            [Constraint::Percentage(15), Constraint::Percentage(85)].as_ref(),
-                        )
-                        .split(domain_ui_panes[1]);
-
-                    let domain_list_widget = Gui::render_domain_list_widget(&domain_list);
-                    let domain_details_table_widget =
-                        Gui::render_domain_info_widget(&selected_domain_info);
-                    let domain_interaction_widget =
-                        Gui::render_domain_interaction_widget(domain_interaction);
-
-                    screen.render_stateful_widget(
-                        domain_list_widget,
-                        domain_ui_panes[0],
-                        &mut domain_list_state,
-                    );
-                    screen.render_widget(domain_details_table_widget, domain_details_panes[0]);
-                    screen.render_widget(domain_interaction_widget, domain_details_panes[1]);
+                    domain_renderer.render(&db, screen, main_panes[1], &mut domain_list_state);
                 }
             }
 

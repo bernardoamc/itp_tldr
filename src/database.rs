@@ -55,7 +55,6 @@ pub struct Database {
 
 impl Database {
     pub fn connect(config: Config) -> SQLiteResult<Self> {
-        dbg!(&config.path);
         let connection = Connection::open(config.path.unwrap())?;
         Ok(Database {
             connection,
@@ -79,7 +78,11 @@ impl Database {
                     .map(|domain| {
                         self.connection
                             .query_row(&SCOPED_DOMAINS, params![domain], map_domains)
-                            .expect("ObservedDomains table to exist")
+                            .unwrap_or(Domain {
+                                id: 0,
+                                name: domain.to_owned(),
+                                ..Default::default()
+                            })
                     })
                     .collect();
 
@@ -88,8 +91,7 @@ impl Database {
             None => {
                 let mut stmt = self.connection.prepare(&OBSERVED_DOMAINS)?;
                 let domains = stmt
-                    .query_map(NO_PARAMS, map_domains)
-                    .expect("ObservedDomains table to exist")
+                    .query_map(NO_PARAMS, map_domains)?
                     .filter_map(|d| d.ok())
                     .collect();
                 Ok(domains)
@@ -110,7 +112,7 @@ impl Database {
                     first_party_store_access: row.get(3)?,
                 })
             })
-            .expect("Failed to query row");
+            .expect("fetch domain info");
 
         Ok(info)
     }
@@ -121,7 +123,7 @@ impl Database {
             None => self
                 .connection
                 .query_row(&DOMAINS_AMOUNT, NO_PARAMS, |r| Ok(r.get(0)))
-                .expect("select failed"),
+                .expect("fetch domain amount"),
         }
     }
 

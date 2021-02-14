@@ -2,11 +2,8 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, Cell, List, ListItem, Paragraph, Row, Table, Tabs},
+    widgets::{Block, BorderType, Borders, Paragraph, Tabs},
 };
-
-use crate::database::{Domain, DomainInteraction};
-
 pub struct Gui;
 
 impl<'a> Gui {
@@ -81,94 +78,6 @@ impl<'a> Gui {
                 .border_type(BorderType::Plain),
         );
         home
-    }
-
-    pub fn render_domain_list_widget(domains: &Vec<Domain>) -> List<'a> {
-        let list_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default().fg(Color::White))
-            .title("Domains")
-            .border_type(BorderType::Plain);
-
-        let list_items: Vec<_> = domains
-            .iter()
-            .map(|domain| {
-                ListItem::new(Spans::from(vec![Span::styled(
-                    domain.name.clone(),
-                    Style::default(),
-                )]))
-            })
-            .collect();
-
-        List::new(list_items).block(list_block).highlight_style(
-            Style::default()
-                .bg(Color::Yellow)
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        )
-    }
-
-    pub fn render_domain_info_widget(domain: &Domain) -> Table<'a> {
-        let header_style = Style::default().add_modifier(Modifier::BOLD);
-
-        Table::new(vec![Row::new(vec![
-            Cell::from(Span::raw(domain.id.to_string())),
-            Cell::from(Span::raw(domain.is_prevalent().to_owned())),
-            Cell::from(Span::raw(domain.is_very_prevalent().to_owned())),
-            Cell::from(Span::raw(domain.first_party_interaction.to_string())),
-            Cell::from(Span::raw(domain.first_party_store_access.to_string())),
-        ])])
-        .header(Row::new(vec![
-            Cell::from(Span::styled("ID", header_style)),
-            Cell::from(Span::styled("PREVALENT?", header_style)),
-            Cell::from(Span::styled("VERY PREVALENT?", header_style)),
-            Cell::from(Span::styled("1ST PARTY USER INTERACTIONS", header_style)),
-            Cell::from(Span::styled("ACCESS DUE TO STORAGE API", header_style)),
-        ]))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .style(Style::default().fg(Color::White))
-                .title("Details")
-                .border_type(BorderType::Plain),
-        )
-        .widths(&[
-            Constraint::Percentage(10),
-            Constraint::Percentage(10),
-            Constraint::Percentage(20),
-            Constraint::Percentage(30),
-            Constraint::Percentage(30),
-        ])
-    }
-
-    pub fn render_domain_interaction_widget(interaction: DomainInteraction) -> Table<'a> {
-        let header_style = Style::default().add_modifier(Modifier::BOLD);
-
-        Table::new(vec![Row::new(vec![
-            Cell::from(Span::raw(interaction.iframes.to_string())),
-            Cell::from(Span::raw(interaction.requests.to_string())),
-            Cell::from(Span::raw(interaction.redirects.to_string())),
-        ])])
-        .header(Row::new(vec![
-            Cell::from(Span::styled("IFRAMED", header_style)),
-            Cell::from(Span::styled("CROSS ORIGIN REQUESTS TO", header_style)),
-            Cell::from(Span::styled(
-                "REDIRECTS WITHOUT USER INTERACTION",
-                header_style,
-            )),
-        ]))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .style(Style::default().fg(Color::White))
-                .title("Interactions")
-                .border_type(BorderType::Plain),
-        )
-        .widths(&[
-            Constraint::Percentage(20),
-            Constraint::Percentage(30),
-            Constraint::Percentage(50),
-        ])
     }
 
     fn render_menu_style(first: &'a str, rest: &'a str) -> Vec<Span<'a>> {
