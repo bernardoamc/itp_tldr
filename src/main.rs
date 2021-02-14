@@ -2,11 +2,13 @@ use crossterm::{
     event::{self, Event as CEvent, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
-
+use serde::Deserialize;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
+use std::{cmp, path::PathBuf};
+use structopt::StructOpt;
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -14,15 +16,13 @@ use tui::{
     Terminal,
 };
 
-use std::cmp;
-
 mod database;
 use database::Database;
 
 mod gui;
 use gui::Gui;
 
-use structopt::StructOpt;
+const DATABASE_PATH: &'static str = "Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics/observations.db";
 
 enum Event<I> {
     Input(I),
@@ -46,15 +46,24 @@ impl From<MenuItem> for usize {
 #[derive(StructOpt, Debug)]
 #[structopt(name = "itp_tldr", setting = structopt::clap::AppSettings::TrailingVarArg)]
 /// ITP TL;DR; the tool you didn't know you needed to understand ITP.
-pub struct Opts {
+struct Opts {
+    /// Safari's SQLite path
+    #[structopt(short, long)]
+    path: Option<PathBuf>,
     /// A list of comma separated domains.
     #[structopt(short, long, use_delimiter = true)]
     pub domains: Option<Vec<String>>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct Config {
+    pub path: Option<PathBuf>,
+    domains: Option<Vec<String>>,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let opts = Opts::from_args();
-    let db = Database::connect(opts.domains).expect("Couldn't connect to the database");
+    let config = fetch_config();
+    let db = Database::connect(config).expect("Couldn't connect to the database");
 
     enable_raw_mode().expect("can run in raw mode");
 
@@ -179,4 +188,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn fetch_config() -> Config {
+    let opts = Opts::from_args();
+
+    let mut config = match read_config() {
+        Some(config) => {
+            let mut config: Config = toml::from_str(&config).expect("config to follow TOML format");
+
+            if opts.path.is_some() {
+                config.path = opts.path;
+            }
+
+            if opts.domains.is_some() {
+                config.domains = opts.domains;
+            }
+
+            config
+        }
+        None => Config {
+            path: opts.path,
+            domains: opts.domains,
+        },
+    };
+
+    if config.path.is_none() {
+        let mut db_path = match dirs::home_dir() {
+            Some(dir) => dir,
+            None => panic!("Could not infer home directory."),
+        };
+        db_path.push(DATABASE_PATH);
+        config.path = Some(db_path);
+    }
+
+    config
+}
+
+fn read_config() -> Option<String> {
+    let mut config_path = dirs::home_dir().unwrap();
+    config_path.push(".itprc");
+
+    if config_path.exists() {
+        Some(std::fs::read_to_string(config_path).expect("able to read from ~/.itprc"))
+    } else {
+        None
+    }
 }

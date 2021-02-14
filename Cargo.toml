@@ -12,3 +12,5 @@ rusqlite = "^0.24"
 crossterm = { version = "0.19" }
 tui = { version = "0.14", default-features = false, features = ['crossterm'] }
 structopt = "0.3.19"
+toml = "0.5.6"
+serde = { version = "1.0", features = ["derive"] }
