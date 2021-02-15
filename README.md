@@ -3,7 +3,7 @@
 The tool everyone needs to reason about Safari's ITP by providing
 **real-time** statistics as you navigate through different domains.
 
-Safari's ITP Debug Mode is far from helpful, this tool is an attempt to make your life as a developer a bit easier.
+Safari's ITP Debug Mode lacks information, this tool is an attempt to make your life as a developer a bit easier.
 
 ## How does it work?
 
@@ -16,11 +16,11 @@ this program reads from this database in real-time and updates the UI accordingl
 
 ## Usage
 
-ITP TL;DR; supports arguments from the command line or from an `.itprc` located in your home folder.
+ITP TL;DR; supports arguments from the command line or from an `.itprc` file located in your home folder.
 
 If not specified the default SQLite path is:
 
-- `/Users/bernardo/<user>/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics/observations.db`
+- `/Users/<user>/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics/observations.db`
 
 ### Command line
 
